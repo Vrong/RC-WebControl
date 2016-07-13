@@ -1,0 +1,14 @@
+
+
+
+
+div#cameradiv {
+	float:right;
+	background-color:#FFCC00;
+}
+div#menu {
+	float:left;
+	width:100px;
+	height:610px;
+	background-color:#FF6699;
+}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="index.css">
+<script>
+  var canvas = 1;
+</script>
+
+<html>
+  <head>
+    <title>Coucou</title>
+  </head>
+  <body>
+    <div id=menu>
+      <div id=lat>Cette page est une
+      page toute simple </div>
+      <div id=camerasize>
+        <FORM>
+          <SELECT id="reschoice" size="1">
+            <OPTION>800x600
+            <OPTION>640x480
+            <OPTION>512x384
+            <OPTION>400x300
+            <OPTION>384x288
+            <OPTION>320x240
+            <OPTION>256x192
+            <OPTION>160x120
+            <OPTION>160x120
+            <OPTION>40x30
+          </SELECT>
+        </FORM>
+
+
+      </div>
+    </div>
+  <div id=cameradiv>
+
+    <script>
+      if(canvas)
+      {
+        document.write('<canvas id="camvas" width="800" height="600" style="border:1px solid #000000;"></canvas>');
+      }
+      else
+      {
+        document.write('<img id=cam src="webcam.jpg" height="600"/>');
+      }
+    </script>
+  </div>
+  </center>
+  </body>
+</html>
+
+
+
+
+
+<script>
+//-------------------------gamepas
+// https://developer.mozilla.org/fr/docs/Web/Guide/API/Gamepad
+window.addEventListener("gamepadconnected", function(e) {
+  console.log("Contrôleur n°%d connecté : %s. %d boutons, %d axes.",
+  e.gamepad.index, e.gamepad.id,
+  e.gamepad.buttons.length, e.gamepad.axes.length);
+});
+
+window.addEventListener("gamepaddisconnected", function(e) {
+  console.log("Contrôleur n°%d déconnecté : %s",
+  e.gamepad.index, e.gamepad.id);
+});
+
+
+
+
+//-------------------------changement de résolution
+
+var reschoice = document.getElementById('reschoice');
+reschoice.onchange = function(){
+
+  rt = reschoice.options[reschoice.selectedIndex].text.split('x');
+
+  req = new XMLHttpRequest();
+  req.open("POST", "http://" + window.location.hostname + ":" + window.location.port + "/setres", false);
+  req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  var encoded = 'w='+ rt[0] + '&h=' + rt[1];
+  req.send(encoded);
+
+  if (req.status != 200)
+  {
+    alert("There was a communications error: " + req.responseText);
+    return;
+  }
+  else
+  {
+    //alert(req.responseXML);
+    //alert(req.responseText);
+  }
+
+
+}
+
+//-------------------------affichage de l'image
+function sleep (time) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}
+
+loadtime = new Date().getTime();
+var lat = document.getElementById("lat");
+
+printfps = 0;
+fps = 0;
+var fpstime = new Date().getTime();
+
+
+if(canvas)
+{
+/* using canvas */
+var camvas = document.getElementById("camvas");
+var ctx = camvas.getContext('2d');
+//var img = [new Image , new Image];
+var img = new Image;
+function getimage(){
+    fps ++;
+    if((new Date().getTime() - fpstime) >= 1000)
+    {
+      printfps = fps;
+      fps = 0;
+      fpstime = new Date().getTime();
+    }
+
+    var now = new Date().getTime();
+    lat.innerHTML = 'Latency : ' + (now - loadtime) + '</br>' +
+      'FPS : ' + printfps;
+    ctx.drawImage(img,0,0, camvas.width, camvas.height);
+    img.src = "webcam.jpg?" + new Date().getTime();
+    loadtime = (new Date().getTime());
+  };
+  img.onload = getimage;
+
+  img.src = "webcam.jpg?" + new Date().getTime();
+}
+else {
+  /* using image */
+  var cam = document.getElementById("cam");
+
+  cam.onload = function () {
+    var now = new Date().getTime()
+    lat.innerHTML = 'Latency : ' + (now - loadtime);
+
+    //sleep(5).then(() => {
+      cam.src = "webcam.jpg?" + new Date().getTime();
+
+      loadtime = (new Date().getTime());
+    //})
+
+
+  }
+}
+
+
+</script>
