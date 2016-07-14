@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <thread>
+#include <mutex>
 
 #include <iostream>
 #include <fstream>
@@ -23,6 +25,24 @@ int DEBUG_CAMERA = 0;
 
 using namespace std;
 
+
+
+void fn_camera(Capture& capture, vector<uchar>& jpeg, mutex& mtxjpg, mutex& mtxcap)
+{
+  std::vector<uchar> tmpjpg;
+  while(1)
+  {
+    mtxcap.lock();
+    capture.updateImage();
+    mtxcap.unlock();
+
+    tmpjpg = capture.getJpeg();
+
+    mtxjpg.lock();
+    jpeg = tmpjpg;
+    mtxjpg.unlock();
+  }
+}
 
 int main(int argc, char** argv)
 {
@@ -81,6 +101,12 @@ int main(int argc, char** argv)
     }
   }
 
+  //démarrage du thread webcam
+  std::vector<uchar> buffer, jpeg;
+  mutex mtxjpg, mtxcap;
+  thread camera_thread(fn_camera, ref(capture), ref(jpeg), ref(mtxjpg), ref(mtxcap));
+
+
   TcpServer server(port);
 
   cout << "TCP Server running..." << endl;
@@ -106,8 +132,9 @@ int main(int argc, char** argv)
 
       if(!strcmp(rcv, CMD_GET_IMAGE))
       {
-        capture.updateImage();
-        buffer = capture.getJpeg();
+        mtxjpg.lock();
+        buffer = jpeg;
+        mtxjpg.unlock();
         client.send((char*)buffer.data(), buffer.size()); //sending image
         //cout << "image sent" << endl;
       }
@@ -130,7 +157,9 @@ int main(int argc, char** argv)
         h = atoi(rcv);
         if(h > 0 && w > 0)
         {
+          mtxcap.lock();
           capture.setSize(w, h);
+          mtxcap.unlock();
           cout << "Resolution changed to " << w << "x" << h << endl;
         }
         else
