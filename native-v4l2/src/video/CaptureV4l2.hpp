@@ -1,10 +1,10 @@
 #ifndef CAPTURE_H
 #define CAPTURE_H
 
-#include "opencv2/opencv.hpp"
 
 #include <unistd.h>
 #include <string>
+#include <sys/ioctl.h>
 
 using namespace cv;
 
@@ -14,12 +14,15 @@ private:
 	int m_camera;
 	Mat image;
 	std::vector<uchar> buf;
+	struct v4l2_format fmt = {0};
 
 	int m_height, m_width;
+	uint8_t *buffer;
 
 	VideoCapture cap;
 
 	std::vector<uchar> encodeImage(std::string ext);
+	static int xioctl(int fd, int request, void *arg);
 
 public:
 	Capture();
@@ -34,7 +37,6 @@ public:
 	std::vector<uchar> getJpeg();
 	std::vector<uchar> getPng();
 
-	void show();
 
 };
 
