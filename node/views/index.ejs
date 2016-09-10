@@ -23,7 +23,6 @@
             <OPTION>320x240
             <OPTION>256x192
             <OPTION>160x120
-            <OPTION>160x120
             <OPTION>40x30
           </SELECT>
         </FORM>
@@ -53,7 +52,7 @@
 
 
 <script>
-//-------------------------gamepas
+//-------------------------gamepad
 // https://developer.mozilla.org/fr/docs/Web/Guide/API/Gamepad
 window.addEventListener("gamepadconnected", function(e) {
   console.log("Contrôleur n°%d connecté : %s. %d boutons, %d axes.",
@@ -101,60 +100,73 @@ function sleep (time) {
   return new Promise((resolve) => setTimeout(resolve, time));
 }
 
-loadtime = new Date().getTime();
-var lat = document.getElementById("lat");
 
-printfps = 0;
-fps = 0;
-var fpstime = new Date().getTime();
-
-
-if(canvas)
+function start_webcam_diffusion()
 {
-/* using canvas */
-var camvas = document.getElementById("camvas");
-var ctx = camvas.getContext('2d');
-//var img = [new Image , new Image];
-var img = new Image;
+  if(canvas)
+  {
+    /* using canvas */
+    var camvas = document.getElementById("camvas");
+    var ctx = camvas.getContext('2d');
+    //var img = [new Image , new Image];
+    var img = new Image;
 
-//refresh image
-function getimage(){
-    fps ++;
-    if((new Date().getTime() - fpstime) >= 1000)
-    {
-      printfps = fps;
-      fps = 0;
-      fpstime = new Date().getTime();
-    }
+    //refresh image
+    function getimage(){
+        updateFPS();
+        ctx.drawImage(img,0,0, camvas.width, camvas.height);
+        img.src = "webcam.jpg?" + new Date().getTime();
+      };
+    img.onload = getimage;
 
-    var now = new Date().getTime();
-    lat.innerHTML = 'Latency : ' + (now - loadtime) + '</br>' +
-      'FPS : ' + printfps;
-    ctx.drawImage(img,0,0, camvas.width, camvas.height);
     img.src = "webcam.jpg?" + new Date().getTime();
-    loadtime = (new Date().getTime());
-  };
-  img.onload = getimage;
+  }
+  else {
+    /* using image */
+    var cam = document.getElementById("cam");
 
-  img.src = "webcam.jpg?" + new Date().getTime();
-}
-else {
-  /* using image */
-  var cam = document.getElementById("cam");
+    cam.onload = function () {
+      var now = new Date().getTime();
+      lat.innerHTML = 'Latency : ' + (now - loadtime);
 
-  cam.onload = function () {
-    var now = new Date().getTime()
-    lat.innerHTML = 'Latency : ' + (now - loadtime);
+      //sleep(5).then(() => {
+        cam.src = "webcam.jpg?" + new Date().getTime();
 
-    //sleep(5).then(() => {
-      cam.src = "webcam.jpg?" + new Date().getTime();
-
-      loadtime = (new Date().getTime());
-    //})
+        loadtime = (new Date().getTime());
+      //})
 
 
+    }
   }
 }
 
 
+
+var loadtime = new Date().getTime();
+var lat = document.getElementById("lat");
+var printfps = 0;
+var fps = 0;
+var fpstime = new Date().getTime();
+
+function updateFPS()
+{
+  var now = new Date().getTime();
+  fps ++;
+  if((now - fpstime) >= 1000)
+  {
+    printfps = fps;
+    fps = 0;
+    fpstime = now;
+  }
+
+  lat.innerHTML = 'Latency : ' + (now - loadtime) + '</br>' +
+    'FPS : ' + printfps;
+
+  loadtime = now;
+}
+
+
+
+//start diffusion
+start_webcam_diffusion();
 </script>
