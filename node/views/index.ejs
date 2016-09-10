@@ -54,16 +54,84 @@
 <script>
 //-------------------------gamepad
 // https://developer.mozilla.org/fr/docs/Web/Guide/API/Gamepad
-window.addEventListener("gamepadconnected", function(e) {
+var gamepadlistener = null;
+var onlinepads = [];
+var padfreq = 20;
+var padstate = [];
+
+function reportOnGamepad() {
+
+  for (var gpindex in onlinepads) {
+      var gp = navigator.getGamepads()[gpindex];
+
+      for(var i=0;i<gp.buttons.length;i++)
+      {
+        if(padstate[gp.index]["button"+i] == 0)
+        {
+            if(gp.buttons[i].pressed)
+              console.log("Button " + i + " pressed");
+        }
+        padstate[gp.index]["button"+i] = gp.buttons[i].pressed;
+      }
+
+      /*for(var i=0;i<gp.axes.length; i+=2) {
+          console.log("Stick "+(Math.ceil(i/2)+1)+": "+gp.axes[i]+","+gp.axes[i+1]);
+      }*/
+  }
+}
+
+function addpad(pad)
+{
   console.log("Contrôleur n°%d connecté : %s. %d boutons, %d axes.",
-  e.gamepad.index, e.gamepad.id,
-  e.gamepad.buttons.length, e.gamepad.axes.length);
+  pad.index, pad.id,
+  pad.buttons.length, pad.axes.length);
+
+  map = {};
+
+  for(var i=0;i<pad.buttons.length;i++) {
+    map["button" + i] = pad.buttons[i].pressed;
+  }
+
+  for(var i=0;i<pad.axes.length; i+=2) {
+    map["axe" + i] = pad.axes[i];
+    map["axe" + (i+1)] = pad.axes[i+1];
+  }
+
+  padstate[pad.index] = map;
+
+  console.log(JSON.stringify(padstate));
+
+  onlinepads.push(i);
+  if(gamepadlistener == null)
+    gamepadlistener = window.setInterval(reportOnGamepad,padfreq);
+}
+
+//register gamepads
+for (var i = 0; i < navigator.getGamepads().length; i++) {
+  var pad = navigator.getGamepads()[i];
+  if(typeof(pad) != 'undefined')
+  {
+    addpad(pad);
+  }
+}
+
+window.addEventListener("gamepadconnected", function(e) {
+  addpad(e.gamepad);
 });
 
 window.addEventListener("gamepaddisconnected", function(e) {
   console.log("Contrôleur n°%d déconnecté : %s",
   e.gamepad.index, e.gamepad.id);
+
+  onlinepads.splice(onlinepads.indexOf(e.gamepad.index));
+
+  if(onlinepads.length == 0)
+  {
+    window.clearInterval(gamepadlistener);
+    gamepadlistener = null;
+  }
 });
+
 
 
 
