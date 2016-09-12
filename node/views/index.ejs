@@ -2,6 +2,7 @@
 <link rel="stylesheet" type="text/css" href="index.css">
 <script>
   var canvas = 1;
+  var debug = 1;
 </script>
 
 <html>
@@ -58,40 +59,82 @@ var gamepadlistener = null;
 var onlinepads = [];
 var padfreq = 20;
 var padstate = [];
+var detection_step = 0.03;
 
-function reportOnGamepad() {
+function pollGamepad() {
 
   for (var gpindex in onlinepads) {
-      var gp = navigator.getGamepads()[gpindex];
+      var gp = navigator.getGamepads()[gpindex]; //each gamepad
 
-      for(var i=0;i<gp.buttons.length;i++)
+      for(var i=0;i<gp.buttons.length;i++) //buttons
       {
-        if(padstate[gp.index]["button"+i] == 0)
+        var previous = padstate[gp.index]["button"+i];
+        var current = gp.buttons[i].value;
+        if(Math.abs(previous - current) > detection_step) //previous state
         {
-            if(gp.buttons[i].pressed)
-              console.log("Button " + i + " pressed");
+            if(current > 0) //pressed
+            {
+              if(debug == 1) console.log("Button " + i + " pressed with value : " + current);
+              sendPadValue("button", i, current);
+            }
+            else { //released
+
+            }
+            padstate[gp.index]["button"+i] = current;
         }
-        padstate[gp.index]["button"+i] = gp.buttons[i].pressed;
-      }
 
       /*for(var i=0;i<gp.axes.length; i+=2) {
-          console.log("Stick "+(Math.ceil(i/2)+1)+": "+gp.axes[i]+","+gp.axes[i+1]);
+          if(debug == 1) console.log("Stick "+(Math.ceil(i/2)+1)+": "+gp.axes[i]+","+gp.axes[i+1]);
       }*/
+    }
+    for(var i=0;i<gp.axes.length;i++) //axes
+    {
+      var previous = padstate[gp.index]["axe"+i];
+      var current = gp.axes[i];
+      if(Math.abs(previous - current) > detection_step)
+      {
+        if(debug == 1) console.log("Axe " + i + " moved - value: " + current);
+        sendPadValue("axe", i, current);
+        padstate[gp.index]["axe"+i] = current;
+      }
+
+    }
   }
+}
+
+function sendPadValue(type, id, value)
+{
+  req = new XMLHttpRequest();
+  req.open("POST", "http://" + window.location.hostname + ":" + window.location.port + "/gamepad", true);
+  req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  var encoded = 'type='+ type + '&id=' + id + '&value=' + value;
+
+  /*req.onload = function(e)
+  {
+    if (req.readyState === 4)
+      if (req.status !== 200){
+        if(debug == 1) alert("[gamepad]There was a communications error: " + req.responseText);
+        return;
+      }
+  }*/
+
+  req.send(encoded);
 }
 
 function addpad(pad)
 {
-  console.log("Contrôleur n°%d connecté : %s. %d boutons, %d axes.",
+  if(debug == 1) console.log("Contrôleur n°%d connecté : %s. %d boutons, %d axes.",
   pad.index, pad.id,
   pad.buttons.length, pad.axes.length);
 
   map = {};
 
+  //add all buttons
   for(var i=0;i<pad.buttons.length;i++) {
-    map["button" + i] = pad.buttons[i].pressed;
+    map["button" + i] = pad.buttons[i].value;
   }
 
+  //add all axes
   for(var i=0;i<pad.axes.length; i+=2) {
     map["axe" + i] = pad.axes[i];
     map["axe" + (i+1)] = pad.axes[i+1];
@@ -99,11 +142,11 @@ function addpad(pad)
 
   padstate[pad.index] = map;
 
-  console.log(JSON.stringify(padstate));
+  //if(debug == 1) console.log(JSON.stringify(padstate));
 
   onlinepads.push(i);
   if(gamepadlistener == null)
-    gamepadlistener = window.setInterval(reportOnGamepad,padfreq);
+    gamepadlistener = window.setInterval(pollGamepad, padfreq);
 }
 
 //register gamepads
@@ -120,10 +163,10 @@ window.addEventListener("gamepadconnected", function(e) {
 });
 
 window.addEventListener("gamepaddisconnected", function(e) {
-  console.log("Contrôleur n°%d déconnecté : %s",
+  if(debug == 1) console.log("Contrôleur n°%d déconnecté : %s",
   e.gamepad.index, e.gamepad.id);
 
-  onlinepads.splice(onlinepads.indexOf(e.gamepad.index));
+  onlinepads.splice(onlinepads.indexOf(e.gamepad.index));//remove gamepad from list
 
   if(onlinepads.length == 0)
   {
@@ -140,25 +183,22 @@ window.addEventListener("gamepaddisconnected", function(e) {
 
 var reschoice = document.getElementById('reschoice');
 reschoice.onchange = function(){
-
   rt = reschoice.options[reschoice.selectedIndex].text.split('x');
-
   req = new XMLHttpRequest();
-  req.open("POST", "http://" + window.location.hostname + ":" + window.location.port + "/setres", false);
+  req.open("POST", "http://" + window.location.hostname + ":" + window.location.port + "/setres", true);
   req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
   var encoded = 'w='+ rt[0] + '&h=' + rt[1];
-  req.send(encoded);
 
-  if (req.status != 200)
+  req.onload = function(e)
   {
-    alert("There was a communications error: " + req.responseText);
-    return;
+    if (req.readyState === 4)
+      if (req.status !== 200){
+        if(debug == 1) alert("There was a communications error: " + req.responseText);
+        return;
+      }
   }
-  else
-  {
-    //alert(req.responseXML);
-    //alert(req.responseText);
-  }
+
+  req.send(encoded);
 
 
 }
@@ -173,39 +213,30 @@ function start_webcam_diffusion()
 {
   if(canvas)
   {
-    /* using canvas */
-    var camvas = document.getElementById("camvas");
-    var ctx = camvas.getContext('2d');
-    //var img = [new Image , new Image];
-    var img = new Image;
-
     //refresh image
     function getimage(){
         updateFPS();
         ctx.drawImage(img,0,0, camvas.width, camvas.height);
         img.src = "webcam.jpg?" + new Date().getTime();
       };
-    img.onload = getimage;
 
+    /* using canvas */
+
+    var camvas = document.getElementById("camvas");
+    var ctx = camvas.getContext('2d');
+    var img = new Image;
+    img.onload = getimage;
     img.src = "webcam.jpg?" + new Date().getTime();
   }
   else {
     /* using image */
-    var cam = document.getElementById("cam");
-
-    cam.onload = function () {
-      var now = new Date().getTime();
-      lat.innerHTML = 'Latency : ' + (now - loadtime);
-
-      //sleep(5).then(() => {
-        cam.src = "webcam.jpg?" + new Date().getTime();
-
-        loadtime = (new Date().getTime());
-      //})
-
-
+    var camimg = document.getElementById("cam");
+    camimg.onload = function () {
+      updateFPS();
+      camimg.src = "webcam.jpg?" + new Date().getTime();
     }
   }
+
 }
 
 
