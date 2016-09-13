@@ -33,11 +33,11 @@ app.get('/webcam.jpg', function(req, res){
 	//console.log(res);
 	var now = new Date().getTime();
 	if(!camwait)
-		camtime = new Date().getTime();
+		camtime = now;
 
 	if(!camwait || (now - camtime > 500 && camwait) )
 	{
-		imgsocket.write("GET_IMAGE_");
+		imageServer.requestImage();
 		camwait = 1;
 		camtime = now;
 	}
@@ -49,61 +49,30 @@ app.listen(8080);
 console.log('Webserver online');
 
 // ----------------- Video Server Connection
-var net = require('net');
-var fs = require('fs');
 
+var imageServer = require("./handle_video.js");
 var imageServerAddress = '127.0.0.1';
 var imageServerPort = 9999;
-var imgsocket;
-
-var imageServerConnectionCallback = function(){
-  console.log('Connected to image server.');
-}
-
-var imageServerConnectionLostCallback = function (){
-	console.log('Connection with local client lost. Reconnecting in 3 secondes.');
-  setTimeout(imageServerTryConnect, 3000);
-}
-
-var imageServerTryConnect = function(){
-  imgsocket = new net.Socket();
-  imgsocket.setNoDelay(true);
-  imgsocket.connect(imageServerPort, imageServerAddress, imageServerConnectionCallback);
-  imgsocket.on('close', imageServerConnectionLostCallback);
-  imgsocket.on('data', imageClientOnDataReceived);
-}
 
 var imageClientOnDataReceived = function(data){
 	camwait = 0;
 	var sentres = [];
 	while(imgres.length != 0)
 	{
-
 		imgres[0].end(data);
 		imgres.splice(0, 1);
 	}
 	//fs.writeFile("./test.jpg", data, function(err) { });
 }
 
-imageServerTryConnect();
+imageServer.connect(imageServerAddress, imageServerPort, imageClientOnDataReceived);
 
-
-//-------------redimensionner
-
+//set resolution
 app.post('/setres', function(req, res) {
-	sess = req.session;
-	w = req.body.w;
-	h = req.body.h;
-	// h = req.query.h; //  GET METHOD
-	console.log('resolution changed to ' + w + 'x' + h);
-	cmd = '';
-	while(w.length < 4)
-		w = '0' + w;
-	while(h.length < 4)
-		h = '0' + h;
-	cmd = 'SET_RESOLU' + w + h;
-	imgsocket.write(cmd);
+	imageServer.setResolution(req.body.w, req.body.h);
 });
+
+
 
 //-------------controller handling
 app.post('/gamepad', function(req, res) {
