@@ -37,7 +37,7 @@ app.get('/webcam.jpg', function(req, res){
 
 	if(!camwait || (now - camtime > 500 && camwait) )
 	{
-		imgclient.write("GET_IMAGE_");
+		imgsocket.write("GET_IMAGE_");
 		camwait = 1;
 		camtime = now;
 	}
@@ -48,40 +48,44 @@ app.listen(8080);
 
 console.log('Webserver online');
 
-// ----------------- VIDEO SERVER PART
-
-
+// ----------------- Video Server Connection
 var net = require('net');
 var fs = require('fs');
 
-var imgclient = new net.Socket();
-imgclient.setNoDelay(true);
-imgclient.connect(9999, '127.0.0.1', function() {
-	console.log('Image client connected');
-});
+var imageServerAddress = '127.0.0.1';
+var imageServerPort = 9999;
+var imgsocket;
 
-imgclient.on('data', function(data) {
+var imageServerConnectionCallback = function(){
+  console.log('Connected to image server.');
+}
+
+var imageServerConnectionLostCallback = function (){
+	console.log('Connection with local client lost. Reconnecting in 3 secondes.');
+  setTimeout(imageServerTryConnect, 3000);
+}
+
+var imageServerTryConnect = function(){
+  imgsocket = new net.Socket();
+  imgsocket.setNoDelay(true);
+  imgsocket.connect(imageServerPort, imageServerAddress, imageServerConnectionCallback);
+  imgsocket.on('close', imageServerConnectionLostCallback);
+  imgsocket.on('data', imageClientOnDataReceived);
+}
+
+var imageClientOnDataReceived = function(data){
 	camwait = 0;
 	var sentres = [];
 	while(imgres.length != 0)
 	{
-		/*if(sentres.indexOf(imgres[0]) < 0)
-		{*/
-			imgres[0].end(data);/*
-			sentres.push(imgres[0]);
-		}
-		else {
-			console.log("THESAME");
-		}*/
+
+		imgres[0].end(data);
 		imgres.splice(0, 1);
 	}
 	//fs.writeFile("./test.jpg", data, function(err) { });
+}
 
-});
-
-imgclient.on('close', function() {
-	console.log('Connection closed');
-});
+imageServerTryConnect();
 
 
 //-------------redimensionner
@@ -98,47 +102,29 @@ app.post('/setres', function(req, res) {
 	while(h.length < 4)
 		h = '0' + h;
 	cmd = 'SET_RESOLU' + w + h;
-	imgclient.write(cmd);
-
-	res.end('OK');
+	imgsocket.write(cmd);
 });
 
+//-------------controller handling
+app.post('/gamepad', function(req, res) {
+	sess = req.session;
+	type = req.body.type;
+	index = req.body.id;
+	value = req.body.value;
+	// h = req.query.h; //  GET METHOD
+	console.log('Gamepad request : ' + type + ' ' + index + ' | value: ' + value);
+	cmd = '';
+  if(type == 'axe')
+    type = 'TYP_AXE___';
+  else
+    type = 'TYP_BUTTON';
+	while(index.length < 4)
+		index = '0' + index;
+  value = value.toString;
+  value = value.substring(0, 4);
+	while(value.length < 4)
+		value = '0' + value;
+	cmd = 'GAMEPAD___' + type + index + value;
+	//gamepadsocket.write(cmd);
 
-
-/*
-var net = require('net');
-var fs = require('fs');
-
-var nativeVideoClient = new net.Socket();
-
-nativeVideoClient.connect(9999, '127.0.0.1', function() {
-	console.log('Connected to native video client');
 });
-nativeVideoClient.on('data', function(data) {
-
-
-
-		udpVideoClient.send(data, udpVideoClient.port, udpVideoClient.address)
-
-});
-
-//------------------------
-var PORT = 8888;
-var HOST = '127.0.0.1';
-
-var dgram = require('dgram');
-var server = dgram.createSocket('udp4');
-
-udpVideo.on('listening', function () {
-    var address = server.address();
-    console.log('UDP Server listening on ' + address.address + ":" + address.port);
-});
-
-server.on('message', function (message, remote) {
-    //console.log(remote.address + ':' + remote.port +' - ' + message);
-		udpVideoClient = remote;
-		nativeVideoClient.write('message')
-});
-
-server.bind(PORT, HOST);
-*/
