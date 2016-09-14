@@ -6,9 +6,9 @@
 using namespace std;
 
 TcpServer::TcpServer(int port) : m_port(port)
-{ 
+{
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd < 0) 
+	if (sockfd < 0)
   		cout << "ERROR opening socket" << endl;
 
   	bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -20,7 +20,7 @@ TcpServer::TcpServer(int port) : m_port(port)
 
 	//réservation du port
 	if (bind(sockfd, (struct sockaddr *) &serv_addr,
-			sizeof(serv_addr)) < 0) 
+			sizeof(serv_addr)) < 0)
 		cout << "ERROR on binding" << endl;
 
 	//écoute du port
@@ -32,11 +32,11 @@ TcpSocket TcpServer::acceptClient()
 
     clilen = sizeof(cli_addr);
 
-	sock_cli = accept(sockfd, 
-           (struct sockaddr *) &cli_addr, 
+	sock_cli = accept(sockfd,
+           (struct sockaddr *) &cli_addr,
            &clilen);
 
-	if (sock_cli < 0) 
+	if (sock_cli < 0)
 	{
     	cout << "ERROR on accept" << endl;
     	TcpSocket client(-1, cli_addr);
