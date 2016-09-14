@@ -23,30 +23,8 @@ app.get('/', function(req, res) {
 	res.render('index.ejs');
 });
 
-var camwait = 0;
-var camtime = new Date().getTime();
-app.get('/webcam.jpg', function(req, res){
-	sess = req.session;
-	//console.log('Image requested');
-	res.writeHead(200, {'Content-Type': 'image/jpeg'});
-	imgres.push(res);
-	//console.log(res);
-	var now = new Date().getTime();
-	if(!camwait)
-		camtime = now;
-
-	if(!camwait || (now - camtime > 500 && camwait) )
-	{
-		imageServer.requestImage();
-		camwait = 1;
-		camtime = now;
-	}
-});
 
 
-app.listen(8080);
-
-console.log('Webserver online');
 
 // ----------------- Video Server Connection
 
@@ -70,30 +48,50 @@ imageServer.connect(imageServerAddress, imageServerPort, imageClientOnDataReceiv
 //set resolution
 app.post('/setres', function(req, res) {
 	imageServer.setResolution(req.body.w, req.body.h);
+  res.end();
+});
+
+var camwait = 0;
+var camtime = new Date().getTime();
+app.get('/webcam.jpg', function(req, res){
+	sess = req.session;
+	//console.log('Image requested');
+	res.writeHead(200, {'Content-Type': 'image/jpeg'});
+	imgres.push(res);
+	//console.log(res);
+	var now = new Date().getTime();
+	if(!camwait)
+		camtime = now;
+
+	if(!camwait || (now - camtime > 500 && camwait) )
+	{
+		imageServer.requestImage();
+		camwait = 1;
+		camtime = now;
+	}
 });
 
 
 
 //-------------controller handling
-app.post('/gamepad', function(req, res) {
-	sess = req.session;
-	type = req.body.type;
-	index = req.body.id;
-	value = req.body.value;
-	// h = req.query.h; //  GET METHOD
-	console.log('Gamepad request : ' + type + ' ' + index + ' | value: ' + value);
-	cmd = '';
-  if(type == 'axe')
-    type = 'TYP_AXE___';
-  else
-    type = 'TYP_BUTTON';
-	while(index.length < 4)
-		index = '0' + index;
-  value = value.toString;
-  value = value.substring(0, 4);
-	while(value.length < 4)
-		value = '0' + value;
-	cmd = 'GAMEPAD___' + type + index + value;
-	//gamepadsocket.write(cmd);
 
+var controlServer = require("./handle_gamepad.js");
+var controlServerAddress = '127.0.0.1';
+var controlServerPort = 9998;
+
+var controlClientOnDataReceived = function(data){
+}
+
+imageServer.connect(controlServerAddress, controlServerPort, controlClientOnDataReceived);
+app.post('/gamepad', function(req, res) {
+  controlServer.sendButton(req.body.type, req.body.id, req.body.value);
+  res.end();
 });
+
+controlServer.connect(controlServerAddress, controlServerPort, controlClientOnDataReceived);
+
+//------------bind server
+
+
+app.listen(8080);
+console.log('Webserver online');

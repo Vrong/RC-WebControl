@@ -55,6 +55,7 @@ var imageServerConnectionLostCallback = function (){
 }
 
 var imageServerTryConnect = function(){
+	if(debug > 0) console.log('Connecting to video server...');
   imgsocket = new net.Socket();
   imgsocket.setNoDelay(true);
   imgsocket.connect(port, address, imageServerConnectionCallback);
