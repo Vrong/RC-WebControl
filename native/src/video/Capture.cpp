@@ -12,7 +12,6 @@ using namespace cv;
 
 Capture::Capture() : Capture(0)
 {
-
 }
 
 Capture::Capture(int camera) : m_camera(camera)
@@ -48,26 +47,38 @@ void Capture::setSize(int width, int height)
 	}
 }
 
+void Capture::setJpegQuality(int quality)
+{
+	if(quality > 0 && quality <= 100)
+	{
+		m_quality = quality;
+	}
+}
 
 
 void Capture::updateImage()
 {
-	cap >> image;
+	prec_image = cur_image;
+	cap >> cur_image;
 
 	if(m_width > 0 && m_height > 0)
 	{
 		Size size(m_width,m_height);
-		resize(image, image, size);
+		resize(cur_image, cur_image, size);
 	}
+}
+
+void Capture::calculateIFrame()
+{
+	absdiff(prec_image, cur_image, iframe);
 }
 
 Mat Capture::getMat()
 {
-	return image;
+	return cur_image;
 }
 
-
-std::vector<uchar> Capture::encodeImage(std::string ext)
+std::vector<uchar> Capture::encodeImage(std::string ext, int source)
 {
 	buf.clear();
 
@@ -75,20 +86,32 @@ std::vector<uchar> Capture::encodeImage(std::string ext)
   p.push_back(CV_IMWRITE_JPEG_QUALITY);
   p.push_back(95);
 
-	imencode(ext, image, buf, p);
+	if(source == FRAME)
+		imencode(ext, cur_image, buf, p);
+	else
+		imencode(ext, iframe, buf, p);
+
 	return buf;
 }
 
 std::vector<uchar> Capture::getJpeg()
 {
-	return encodeImage(".jpg");
+	return getJpeg(FRAME);
 }
 
 std::vector<uchar> Capture::getPng()
 {
-	return encodeImage(".png");
+	return getPng(FRAME);
+}
+std::vector<uchar> Capture::getJpeg(int source)
+{
+	return encodeImage(".jpg", source);
 }
 
+std::vector<uchar> Capture::getPng(int source)
+{
+	return encodeImage(".png", source);
+}
 
 void Capture::show()
 {
@@ -98,6 +121,6 @@ void Capture::show()
 	oss << "Camera " << m_camera;
 
 	//namedWindow(oss.str().c_str(), WINDOW_AUTOSIZE);
-	imshow(oss.str().c_str(), image);
+	imshow(oss.str().c_str(), cur_image);
 	cv::waitKey(1);
 }
