@@ -19,6 +19,7 @@
 int DEBUG_CAMERA = 0;
 
 #define CMD_GET_IMAGE "GET_IMAGE_"
+#define CMD_GET_IFRAME "GET_IFRAME"
 #define CMD_SET_RESOLUTION "SET_RESOLU"
 
 using namespace std;
@@ -107,7 +108,15 @@ int main(int argc, char** argv)
       if(!strcmp(rcv, CMD_GET_IMAGE))
       {
         capture.updateImage();
-        buffer = capture.getJpeg();
+        buffer = capture.getJpeg(FRAME);
+        client.send((char*)buffer.data(), buffer.size()); //sending image
+        //cout << "image sent" << endl;
+      }
+      else if(!strcmp(rcv, CMD_GET_IFRAME))
+      {
+        capture.updateImage();
+        capture.calculateIFrame();
+        buffer = capture.getJpeg(IFRAME);
         client.send((char*)buffer.data(), buffer.size()); //sending image
         //cout << "image sent" << endl;
       }
