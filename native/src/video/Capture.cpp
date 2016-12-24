@@ -117,9 +117,9 @@ void Capture::calculateIFrame()
 	if(prec_image.channels() == cur_image.channels() &&
 				prec_image.depth() == cur_image.depth() &&
 				prec_image.cols == cur_image.cols &&
-				prec_image.rows == cur_image.rows)
+				prec_image.rows == cur_image.rows) //if prec and cur avec same characteristics we can do a substraction
 			absdiff(prec_image, cur_image, iframe);
-	else
+	else // or we just give a black image because properties just changed
 	{
 		iframe = cur_image.clone();
 		iframe.setTo(Scalar(0)); //may depends of channels count
@@ -163,7 +163,6 @@ std::vector<uchar> Capture::encodeImage(std::string ext, int source)
 		imencode(ext, cur_image, buf, getJpegParams());
 	else if(source == Type::IFRAME)
 		imencode(ext, iframe, buf, getJpegParams());
-
 	return buf;
 }
 
