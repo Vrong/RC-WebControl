@@ -57,16 +57,35 @@ int main(int argc, char** argv)
     Timer timer;
     Timer fpstimer;
     int fps = 0, fpscpt = 0;
+
+    capture.setJpegQuality(40);
+    capture.setBW(false);
+    capture.setEqualization(true);
+
     while(1)
     {
       timer.restart();
       capture.updateImage();
       uint64_t capturetime = (timer.elapsed_ms());
+
       uint64_t avant = timer.elapsed_us();
-      capture.getJpeg();
+      capture.getJpeg(Capture::Type::FRAME);
       uint64_t compression = (timer.elapsed_us() - avant);
-      cout << "Temps compression : " << (timer.elapsed_us() - avant) << endl << endl;
+
+      avant = timer.elapsed_us();
+      capture.calculateIFrame();
+      uint64_t iframe_calcul = (timer.elapsed_us() - avant);
+
+      avant = timer.elapsed_us();
+      capture.getJpeg(Capture::Type::IFRAME);
+      uint64_t iframe_compression = (timer.elapsed_us() - avant);
+
+      capture.saveImage("./image.jpg");
+      capture.saveIFrame("./iframe.jpg");
+
+      //capture.show(Capture::Type::IFRAME);
       capture.show();
+  		std::cout << "Pass show " << std::endl;
 
       fpscpt ++;
       if(fpstimer.elapsed_s() >= 1)
@@ -77,7 +96,9 @@ int main(int argc, char** argv)
       }
 
       cout << "Temps Capture :     " << capturetime << endl
-           << "Temps compression : " << compression << endl
+           << "Temps compression image : " << compression << endl
+           << "Temps calcul iframe : " << iframe_calcul << endl
+           << "Temps compression iframe : " << iframe_compression << endl
            << "FPS :               " << fps << endl << endl;
     }
   }
@@ -108,7 +129,7 @@ int main(int argc, char** argv)
       if(!strcmp(rcv, CMD_GET_IMAGE))
       {
         capture.updateImage();
-        buffer = capture.getJpeg(FRAME);
+        buffer = capture.getJpeg(Capture::Type::FRAME);
         client.send((char*)buffer.data(), buffer.size()); //sending image
         //cout << "image sent" << endl;
       }
@@ -116,7 +137,7 @@ int main(int argc, char** argv)
       {
         capture.updateImage();
         capture.calculateIFrame();
-        buffer = capture.getJpeg(IFRAME);
+        buffer = capture.getJpeg(Capture::Type::IFRAME);
         client.send((char*)buffer.data(), buffer.size()); //sending image
         //cout << "image sent" << endl;
       }
