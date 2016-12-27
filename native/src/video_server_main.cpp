@@ -89,7 +89,7 @@ int main(int argc, char** argv)
   {
     cout << "Waiting for client" << endl;
     TcpSocket client = server.acceptClient();
-    cout << "Connected to client" << endl;
+    cout << "Video server connected to client" << endl;
 
     char rcv[11];
     std::vector<uchar> buffer;

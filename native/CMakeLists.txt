@@ -15,5 +15,13 @@ src/video/Capture.cpp src/video/Capture.hpp
 src/tcp/TcpServer.cpp src/tcp/TcpServer.hpp
 src/tcp/TcpSocket.cpp src/tcp/TcpSocket.hpp
 src/misc/Clock.hpp)
-target_link_libraries( VideoServer ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(VideoServer ${OpenCV_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 target_compile_features(VideoServer PRIVATE cxx_delegating_constructors)
+
+#control build
+add_executable(ControlServer src/control_server_main.cpp
+src/tcp/TcpServer.cpp src/tcp/TcpServer.hpp
+src/tcp/TcpSocket.cpp src/tcp/TcpSocket.hpp
+src/misc/Clock.hpp)
+target_link_libraries(ControlServer ${CMAKE_THREAD_LIBS_INIT})
+target_compile_features(ControlServer PRIVATE cxx_delegating_constructors)

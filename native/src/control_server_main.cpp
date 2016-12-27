@@ -10,12 +10,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 #include "tcp/TcpServer.hpp"
 #include "tcp/TcpSocket.hpp"
 #include "misc/Clock.hpp"
-
-int DEBUG_GAMEPAD = 0;
 
 #define CONTROL_PORT 9998;
 #define CMD_GAMEPAD "GAMEPAD___"
@@ -25,9 +24,12 @@ int DEBUG_GAMEPAD = 0;
 #define TYPE_BUTTON 2
 
 
-using namespace std;
+
+int DEBUG_GAMEPAD = 0;
 
 void executeCommand(int type, int index, float value);
+
+using namespace std;
 
 int main(int argc, char** argv)
 {
@@ -49,9 +51,9 @@ int main(int argc, char** argv)
     cout << "Local control TCP server set on port " << port << endl;
   }
 
-  if(DEBUG)
+  if(DEBUG_GAMEPAD)
   {
-
+    cout << "Debug mode" << endl;
   }
 
   TcpServer server(port);
@@ -62,10 +64,9 @@ int main(int argc, char** argv)
   {
     cout << "Waiting for client" << endl;
     TcpSocket client = server.acceptClient();
-    cout << "Connected to client" << endl;
+    cout << "Control server connected to client" << endl;
 
     char rcv[11];
-    std::vector<uchar> buffer;
     rcv[10] = '\0';
     while(true)
     {
@@ -81,7 +82,7 @@ int main(int argc, char** argv)
       if(!strcmp(rcv, CMD_GAMEPAD))
       {
         int index = -1, type = -1;
-        float value = -1f;
+        float value = -1.0f;
 
         if(!client.recv(rcv, 10))
         {
@@ -90,7 +91,7 @@ int main(int argc, char** argv)
         }
         if(!strcmp(rcv, CMD_TYPE_AXE))
           type = TYPE_AXE;
-        else
+        else if(!strcmp(rcv, CMD_TYPE_BUTTON))
           type = TYPE_BUTTON;
         else
         {
@@ -106,19 +107,20 @@ int main(int argc, char** argv)
         }
         index = atoi(rcv);
 
-        if(!client.recv(rcv, 4))
+        rcv[6] = '\0';
+        if(!client.recv(rcv, 6))
         {
           cout << "Connection lost" << endl;
           break;
         }
         value = atof(rcv);
-        if(index >= 0 && value >= 0)
+        if(index >= 0 && abs(value) <= 1)
         {
           cout << "Received command : " << type << " | " << index << " | " << value << endl;
           executeCommand(type, index, value);
         }
         else
-          cout << "Invalid resolution" << endl;
+          cout << "Invalid Values" << endl;
       }
       else
       {
