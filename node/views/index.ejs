@@ -68,8 +68,8 @@ function pollGamepad() {
 
       for(var i=0;i<gp.buttons.length;i++) //buttons
       {
-        var previous = padstate[gp.index]["button"+i];
-        var current = gp.buttons[i].value;
+        var previous = padstate[gp.index]["button"+i]; //save previous value 
+        var current = gp.buttons[i].value;// read current value 
         if(Math.abs(previous - current) > detection_step || ((current == 0 || current == 1) && current != previous))
         {
             if(current > 0) //pressed
@@ -78,8 +78,8 @@ function pollGamepad() {
             }
             else { //released
             }
-            sendPadValue("button", i, current);
-            padstate[gp.index]["button"+i] = current;
+            sendPadValue("button", i, current); //send to server
+            padstate[gp.index]["button"+i] = current; //save current button state
         }
 
       /*for(var i=0;i<gp.axes.length; i+=2) {
@@ -139,26 +139,27 @@ function addpad(pad)
     map["axe" + (i+1)] = pad.axes[i+1];
   }
 
-  padstate[pad.index] = map;
+  padstate[pad.index] = map; //register button map
 
   //if(debug == 1) console.log(JSON.stringify(padstate));
 
-  onlinepads.push(i);
+  onlinepads.push(pad.index); //TODO check gamepad
   if(gamepadlistener == null)
     gamepadlistener = window.setInterval(pollGamepad, padfreq);
 }
 
-//register gamepads
+//register already connected gamepads
 for (var i = 0; i < navigator.getGamepads().length; i++) {
   var pad = navigator.getGamepads()[i];
-  if(typeof(pad) != 'undefined')
+  if(typeof(pad) != 'undefined' && pad != null)
   {
     addpad(pad);
   }
 }
 
 window.addEventListener("gamepadconnected", function(e) {
-  addpad(e.gamepad);
+  if(e.gamepad != null)
+  	addpad(e.gamepad);
 });
 
 window.addEventListener("gamepaddisconnected", function(e) {
