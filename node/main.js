@@ -59,6 +59,10 @@ app.get('/webcam.jpg', function(req, res){
 	res.writeHead(200, {'Content-Type': 'image/jpeg'});
 	imgres.push(res);
 	//console.log(res);
+
+
+
+	//TODO revoir ce code chelou
 	var now = new Date().getTime();
 	if(!camwait)
 		camtime = now;
